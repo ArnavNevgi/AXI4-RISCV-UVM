@@ -1,0 +1,28 @@
+# Questa / ModelSim generated files
+work/
+modelsim.ini
+transcript
+vsim.wlf
+*.wlf
+*.vcd
+*.fst
+*.vstf
+*.ucdb
+*.log
+*.jou
+
+# Error / crash / temporary simulation files
+Error
+*.stacktrace
+*.tmp
+*.bak
+
+# Editor / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Optional generated outputs
+*.rpt
+*.out
