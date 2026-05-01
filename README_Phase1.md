@@ -171,3 +171,294 @@ Example passing output:
 
 ```text
 PHASE 2 STEP 7 PASS: Randomized burst regression completed
+
+# Phase 3: CPU Integration — Complete
+
+## Goal
+
+Build a minimal RISC-V CPU core and connect it to the AXI infrastructure through a CPU-to-AXI adapter.
+
+The CPU core uses a simple memory-request interface. The `cpu_axi_adapter.sv` module converts CPU load/store requests into AXI single-beat read/write transactions.
+
+---
+
+## Implemented Files
+
+### `alu.sv`
+
+Minimal ALU supporting:
+
+- `ADD`
+- `SUB`
+- zero flag generation
+
+Verified with:
+
+- `alu_tb.sv`
+
+---
+
+### `reg_file.sv`
+
+32-register RISC-V register file.
+
+Features:
+
+- 32 general-purpose registers
+- two asynchronous read ports
+- one synchronous write port
+- `x0` hardwired to zero
+- writes to `x0` ignored
+- reset clears all registers
+
+Verified with:
+
+- `reg_file_tb.sv`
+
+---
+
+### `control_unit.sv`
+
+Decoder for the supported RISC-V subset.
+
+Supported instructions:
+
+| Instruction | Type | Description |
+|---|---|---|
+| `ADD` | R-type | Register-register addition |
+| `SUB` | R-type | Register-register subtraction |
+| `LW` | I-type | Load word |
+| `SW` | S-type | Store word |
+
+Decoded control signals:
+
+- `reg_write`
+- `mem_read`
+- `mem_write`
+- `mem_to_reg`
+- `alu_src`
+- `alu_op`
+- `rs1`
+- `rs2`
+- `rd`
+- `imm`
+
+Verified with:
+
+- `control_unit_tb.sv`
+
+---
+
+### `riscv_core.sv`
+
+Minimal multicycle RISC-V core.
+
+FSM stages:
+
+- `FETCH`
+- `DECODE`
+- `EXECUTE`
+- `MEM`
+- `WRITEBACK`
+
+Supported instructions:
+
+- `ADD`
+- `SUB`
+- `LW`
+- `SW`
+
+Interfaces:
+
+- instruction memory interface:
+  - `imem_addr`
+  - `imem_rdata`
+
+- simple data-memory interface:
+  - `dmem_valid`
+  - `dmem_write`
+  - `dmem_addr`
+  - `dmem_wdata`
+  - `dmem_rdata`
+  - `dmem_ready`
+
+Verified with:
+
+- `riscv_core_tb.sv`
+
+---
+
+### `cpu_axi_adapter.sv`
+
+Adapter from the CPU memory interface to AXI.
+
+CPU-side interface:
+
+- `cpu_valid`
+- `cpu_write`
+- `cpu_addr`
+- `cpu_wdata`
+- `cpu_rdata`
+- `cpu_ready`
+
+AXI-side interface:
+
+- `axi_if.master`
+
+Supported behavior:
+
+- CPU store converts to single-beat AXI write
+- CPU load converts to single-beat AXI read
+- `AWLEN = 0`
+- `ARLEN = 0`
+- `WLAST = 1`
+- waits for `BVALID/BREADY` on writes
+- waits for `RVALID/RREADY/RLAST` on reads
+- uses a `DONE` state to safely handle held-valid CPU requests
+
+Verified with:
+
+- `cpu_axi_adapter_tb.sv`
+
+---
+
+### `riscv_core_axi_tb.sv`
+
+Full Phase 3 integration testbench.
+
+Integration path:
+
+```text
+RISC-V core
+  ↓
+simple CPU memory interface
+  ↓
+cpu_axi_adapter
+  ↓
+AXI interface
+  ↓
+AXI memory model
+
+---
+
+# Phase 4: DMA Controller — Complete
+
+## Goal
+
+Build a DMA controller that can copy data from one memory region to another using AXI transactions.
+
+The DMA operates as an AXI master. It reads from a source address, writes to a destination address, and asserts `done` after the transfer completes.
+
+---
+
+## Implemented Files
+
+### `dma_controller.sv`
+
+Single-beat DMA controller.
+
+Behavior:
+
+- reads one 32-bit word from source address
+- writes one 32-bit word to destination address
+- increments source and destination addresses
+- repeats until `length` words are copied
+- supports `busy`, `done`, and `error` status
+
+Verified with:
+
+- `dma_controller_tb.sv`
+
+Test coverage:
+
+- zero-length transfer
+- 1-word copy
+- 4-word copy
+- 8-word copy
+- randomized DMA copy regression
+- start-while-busy protection
+- protocol checks for single-beat AXI transactions
+
+---
+
+### `dma_controller_burst.sv`
+
+Burst-mode DMA controller.
+
+Behavior:
+
+- reads source memory using AXI INCR bursts
+- buffers read data internally
+- writes buffered data to destination memory using AXI INCR bursts
+- supports burst transfers up to 16 words per AXI burst
+- supports larger transfers by splitting into multiple bursts
+
+Example:
+
+```text
+length = 40 words
+burst 1 = 16 words
+burst 2 = 16 words
+burst 3 = 8 words
+
+Verified with:
+
+dma_controller_burst_tb.sv
+
+Test coverage:
+
+1-word burst copy
+4-word burst copy
+8-word burst copy
+16-word burst copy
+17-word multi-burst copy
+20-word multi-burst copy
+32-word multi-burst copy
+40-word multi-burst copy
+randomized burst DMA regression up to 64 words
+randomized source and destination addresses
+randomized data patterns
+random AWREADY
+random WREADY
+random ARREADY
+delayed/gapped RVALID
+delayed BVALID
+burst protocol checking
+scoreboard-style memory copy checking
+DMA Control / Status
+
+DMA control inputs:
+
+start
+src_addr
+dst_addr
+length
+
+DMA status outputs:
+
+busy
+done
+error
+
+Verified status behavior:
+
+busy asserts during active DMA transfer
+done is asserted after transfer completion
+zero-length transfer completes without modifying memory
+start while busy is ignored
+error is asserted on AXI response errors
+Phase 4 Verification Summary
+
+The DMA was verified using self-checking SystemVerilog testbenches.
+
+Verified scenarios:
+
+fixed-length DMA copies
+randomized DMA copies
+single-beat DMA transfers
+AXI burst DMA transfers
+multi-burst splitting for transfers larger than 16 words
+backpressure on AXI address/data channels
+delayed AXI responses
+status/control behavior
+destination memory checked against source memory
