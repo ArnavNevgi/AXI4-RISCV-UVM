@@ -58,33 +58,64 @@ interface axi_if #(parameter ID_W=4, ADDR_W=32, DATA_W=32)
   logic r_valid, r_ready;
   axi_r_t r;
 
-  // ---------------- BASIC ASSERTIONS ----------------
-  // VALID must remain stable until READY
+// ---------------- BASIC ASSERTIONS ----------------
+// VALID payload must remain stable until READY
 
- property stable_aw;
+property stable_aw;
   @(posedge clk) disable iff(!rst_n)
     (aw_valid && !aw_ready) |=> (aw_valid && $stable(aw));
 endproperty
 
-assert property(stable_aw);
+a_stable_aw: assert property(stable_aw);
+
 
 property stable_w;
   @(posedge clk) disable iff(!rst_n)
     (w_valid && !w_ready) |=> (w_valid && $stable(w));
 endproperty
 
-assert property(stable_w);
+a_stable_w: assert property(stable_w);
+
 
 property stable_ar;
   @(posedge clk) disable iff(!rst_n)
     (ar_valid && !ar_ready) |=> (ar_valid && $stable(ar));
 endproperty
 
-assert property(stable_ar);
+a_stable_ar: assert property(stable_ar);
 
 
+property stable_b;
+  @(posedge clk) disable iff(!rst_n)
+    (b_valid && !b_ready) |=> (b_valid && $stable(b));
+endproperty
 
-  // // ---------------- MODPORTS ----------------
+a_stable_b: assert property(stable_b);
+
+
+property stable_r;
+  @(posedge clk) disable iff(!rst_n)
+    (r_valid && !r_ready) |=> (r_valid && $stable(r));
+endproperty
+
+a_stable_r: assert property(stable_r);
+
+
+property wlast_only_when_wvalid;
+  @(posedge clk) disable iff(!rst_n)
+    w.last |-> w_valid;
+endproperty
+
+a_wlast_only_when_wvalid: assert property(wlast_only_when_wvalid);
+
+
+property rlast_only_when_rvalid;
+  @(posedge clk) disable iff(!rst_n)
+    r.last |-> r_valid;
+endproperty
+
+a_rlast_only_when_rvalid: assert property(rlast_only_when_rvalid);
+
 
   // ---------------- MODPORTS ----------------
 modport master (
@@ -145,42 +176,5 @@ modport slave (
   input  r_ready
 );
 
-  // modport master (
-  //   input clk, rst_n,
-
-  //   output aw_valid, aw_id, aw_addr, aw_len, aw_size, aw_burst,
-  //   input  aw_ready,
-
-  //   output w_valid, w_data, w_strb, w_last,
-  //   input  w_ready,
-
-  //   input  b_valid, b_id, b_resp,
-  //   output b_ready,
-
-  //   output ar_valid, ar_id, ar_addr, ar_len, ar_size, ar_burst,
-  //   input  ar_ready,
-
-  //   input  r_valid, r_id, r_data, r_resp, r_last,
-  //   output r_ready
-  // );
-
-  // modport slave (
-  //   input clk, rst_n,
-
-  //   input  aw_valid, aw_id, aw_addr, aw_len, aw_size, aw_burst,
-  //   output aw_ready,
-
-  //   input  w_valid, w_data, w_strb, w_last,
-  //   output w_ready,
-
-  //   output b_valid, b_id, b_resp,
-  //   input  b_ready,
-
-  //   input  ar_valid, ar_id, ar_addr, ar_len, ar_size, ar_burst,
-  //   output ar_ready,
-
-  //   output r_valid, r_id, r_data, r_resp, r_last,
-  //   input  r_ready
-  // );
 
 endinterface

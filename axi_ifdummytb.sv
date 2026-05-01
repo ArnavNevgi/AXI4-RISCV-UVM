@@ -47,6 +47,8 @@ module tb;
   logic [7:0]        r_cnt_reg;
   logic [ADDR_W-1:0] r_addr_reg;
   logic [ID_W-1:0]   r_id_reg;
+  logic [2:0] r_delay;
+  logic       r_waiting;
   
   axi_master master_inst (
     .clk(clk),
@@ -81,6 +83,21 @@ module tb;
 
   int error_count;
 
+// =========================================================
+// WRITE BURST PROTOCOL CHECKER
+// =========================================================
+
+logic        chk_wr_active;
+logic [7:0]  chk_aw_len;
+logic [7:0]  chk_w_cnt;
+// =========================================================
+// READ BURST PROTOCOL CHECKER
+// =========================================================
+
+logic        chk_rd_active;
+logic [7:0]  chk_ar_len;
+logic [7:0]  chk_r_cnt;
+
   // =========================================================
   // SIMPLE AXI SLAVE (MEMORY MODEL)
   // =========================================================
@@ -95,8 +112,152 @@ module tb;
   logic aw_seen;
   logic [ID_W-1:0] saved_id;
 
+  logic ar_accept;
+  logic r_accept;
+  logic b_accept;
+
+  assign ar_accept = intf.ar_valid && intf.ar_ready;
+  assign r_accept  = intf.r_valid  && intf.r_ready;
+  assign b_accept  = intf.b_valid  && intf.b_ready;
   assign aw_accept = intf.aw_valid && intf.aw_ready;
   assign w_accept  = intf.w_valid  && intf.w_ready && aw_seen;
+
+  // =========================================================
+// WRITE BURST PROTOCOL CHECKER
+// Checks AWLEN/WLAST/W beat count consistency
+// =========================================================
+
+always_ff @(posedge clk or negedge rst_n) begin
+  if (!rst_n) begin
+    chk_wr_active <= 0;
+    chk_aw_len    <= 0;
+    chk_w_cnt     <= 0;
+  end
+  else begin
+
+    // AW accepted: start tracking one write burst
+    if (aw_accept) begin
+      if (chk_wr_active) begin
+        $error("WRITE CHECKER ERROR: New AW accepted before previous W burst completed @ %t", $time);
+        error_count <= error_count + 1;
+      end
+
+      chk_wr_active <= 1;
+      chk_aw_len    <= intf.aw.len;
+      chk_w_cnt     <= 0;
+    end
+
+    // Raw W handshake seen before any AW
+    if (intf.w_valid && intf.w_ready && !chk_wr_active) begin
+      $error("WRITE CHECKER ERROR: W beat accepted before AW burst active @ %t", $time);
+      error_count <= error_count + 1;
+    end
+
+    // Valid W beat for active burst
+    if (intf.w_valid && intf.w_ready && chk_wr_active) begin
+
+      // Early WLAST check
+      if ((chk_w_cnt != chk_aw_len) && intf.w.last) begin
+        $error("WRITE CHECKER ERROR: Early WLAST. beat=%0d expected_last_beat=%0d @ %t",
+               chk_w_cnt, chk_aw_len, $time);
+        error_count <= error_count + 1;
+      end
+
+      // Missing WLAST check
+      if ((chk_w_cnt == chk_aw_len) && !intf.w.last) begin
+        $error("WRITE CHECKER ERROR: Missing WLAST on final beat. beat=%0d @ %t",
+               chk_w_cnt, $time);
+        error_count <= error_count + 1;
+      end
+
+      // Beat beyond AWLEN check
+      if (chk_w_cnt > chk_aw_len) begin
+        $error("WRITE CHECKER ERROR: Too many W beats. beat=%0d aw_len=%0d @ %t",
+               chk_w_cnt, chk_aw_len, $time);
+        error_count <= error_count + 1;
+      end
+
+      // End burst after final accepted beat
+      if (chk_w_cnt == chk_aw_len) begin
+        chk_wr_active <= 0;
+        chk_w_cnt     <= 0;
+      end
+      else begin
+        chk_w_cnt <= chk_w_cnt + 1;
+      end
+    end
+
+  end
+end
+
+// =========================================================
+// READ BURST PROTOCOL CHECKER
+// Checks ARLEN/RLAST/R beat count consistency
+// =========================================================
+
+always_ff @(posedge clk or negedge rst_n) begin
+  if (!rst_n) begin
+    chk_rd_active <= 0;
+    chk_ar_len    <= 0;
+    chk_r_cnt     <= 0;
+  end
+  else begin
+
+    // AR accepted: start tracking one read burst
+    if (ar_accept) begin
+      if (chk_rd_active) begin
+        $error("READ CHECKER ERROR: New AR accepted before previous R burst completed @ %t", $time);
+        error_count <= error_count + 1;
+      end
+
+      chk_rd_active <= 1;
+      chk_ar_len    <= intf.ar.len;
+      chk_r_cnt     <= 0;
+    end
+
+    // Raw R handshake seen before any AR burst is active
+    if (r_accept && !chk_rd_active) begin
+      $error("READ CHECKER ERROR: R beat accepted before AR burst active @ %t", $time);
+      error_count <= error_count + 1;
+    end
+
+    // Valid R beat for active burst
+    if (r_accept && chk_rd_active) begin
+
+      // Early RLAST check
+      if ((chk_r_cnt != chk_ar_len) && intf.r.last) begin
+        $error("READ CHECKER ERROR: Early RLAST. beat=%0d expected_last_beat=%0d @ %t",
+               chk_r_cnt, chk_ar_len, $time);
+        error_count <= error_count + 1;
+      end
+
+      // Missing RLAST check
+      if ((chk_r_cnt == chk_ar_len) && !intf.r.last) begin
+        $error("READ CHECKER ERROR: Missing RLAST on final beat. beat=%0d @ %t",
+               chk_r_cnt, $time);
+        error_count <= error_count + 1;
+      end
+
+      // Beat beyond ARLEN check
+      if (chk_r_cnt > chk_ar_len) begin
+        $error("READ CHECKER ERROR: Too many R beats. beat=%0d ar_len=%0d @ %t",
+               chk_r_cnt, chk_ar_len, $time);
+        error_count <= error_count + 1;
+      end
+
+      // End burst after final accepted beat
+      if (chk_r_cnt == chk_ar_len) begin
+        chk_rd_active <= 0;
+        chk_r_cnt     <= 0;
+      end
+      else begin
+        chk_r_cnt <= chk_r_cnt + 1;
+      end
+    end
+
+  end
+end
+
 
   always_ff @(posedge clk or negedge rst_n) begin
   if (!rst_n)
@@ -122,24 +283,6 @@ always_ff @(posedge clk or negedge rst_n) begin
   else
     intf.w_ready <= $urandom_range(0,1);
 end
-
-//   // READ ADDRESS (AR channel)
-// always_ff @(posedge clk or negedge rst_n) begin
-//   if (!rst_n) begin
-//     intf.ar_ready <= 0;
-//     r_addr <= 0;
-//     r_len  <= 0;
-//     r_cnt  <= 0;
-//   end else begin
-//     intf.ar_ready <= 1;
-
-//     if (intf.ar_valid && intf.ar_ready) begin
-//       r_addr <= intf.ar.addr;
-//       r_len  <= intf.ar.len;
-//       r_cnt  <= 0;
-//     end
-//   end
-// end
 
 // WRITE ADDRESS (AW channel)
 always_ff @(posedge clk or negedge rst_n) begin
@@ -203,7 +346,7 @@ always_ff @(posedge clk or negedge rst_n) begin
     end
 
     // Handshake clear
-    if (intf.b_valid && intf.b_ready) begin
+    if (b_accept) begin
       intf.b_valid <= 0;
     end
 
@@ -254,8 +397,8 @@ always_ff @(posedge clk or negedge rst_n) begin
   end
 end
 
-  // =========================================================
-// READ ADDRESS + READ DATA RESPONSE
+// =========================================================
+// READ ADDRESS + READ DATA RESPONSE WITH RANDOM RVALID DELAY
 // =========================================================
 
 always_ff @(posedge clk or negedge rst_n) begin
@@ -273,46 +416,71 @@ always_ff @(posedge clk or negedge rst_n) begin
     r_cnt_reg     <= 0;
     r_addr_reg    <= 0;
     r_id_reg      <= 0;
+
+    r_delay       <= 0;
+    r_waiting     <= 0;
   end
   else begin
-    // Default randomized AR backpressure
-    intf.ar_ready <= $urandom_range(0,1);
+    // Random AR backpressure.
+    // Only accept new AR when not already serving a read burst.
+    if (!r_active && !r_waiting)
+      intf.ar_ready <= $urandom_range(0,1);
+    else
+      intf.ar_ready <= 0;
 
-    // Accept AR only when not already serving a read burst
-    if (intf.ar_valid && intf.ar_ready && !r_active) begin
+    // ---------------- AR HANDSHAKE ----------------
+    if (ar_accept && !r_active && !r_waiting) begin
       r_active   <= 1;
+      r_waiting  <= 1;
+      r_delay    <= $urandom_range(0,3);
+
       r_len_reg  <= intf.ar.len;
       r_cnt_reg  <= 0;
       r_addr_reg <= intf.ar.addr;
       r_id_reg   <= intf.ar.id;
 
-      // Launch first R beat
-      intf.r_valid <= 1;
-      intf.r.data  <= mem[intf.ar.addr >> 2];
-      intf.r.resp  <= AXI_RESP_OKAY;
-      intf.r.id    <= intf.ar.id;
-      intf.r.last  <= (intf.ar.len == 0);
+      intf.r_valid <= 0;
+      intf.r.last  <= 0;
     end
 
-    // R beat accepted
-    else if (intf.r_valid && intf.r_ready) begin
-
-      if (r_cnt_reg == r_len_reg) begin
-        // Final beat was accepted
-        intf.r_valid <= 0;
-        intf.r.last  <= 0;
-        r_active     <= 0;
+    // ---------------- WAIT BEFORE NEXT R BEAT ----------------
+    else if (r_active && r_waiting) begin
+      if (r_delay != 0) begin
+        r_delay <= r_delay - 1;
       end
       else begin
-        // Prepare next R beat
+        // Launch current R beat
+        intf.r_valid <= 1;
+        intf.r.data  <= mem[r_addr_reg >> 2];
+        intf.r.resp  <= AXI_RESP_OKAY;
+        intf.r.id    <= r_id_reg;
+        intf.r.last  <= (r_cnt_reg == r_len_reg);
+
+        r_waiting <= 0;
+      end
+    end
+
+    // ---------------- R HANDSHAKE ----------------
+    else if (r_accept) begin
+
+      if (r_cnt_reg == r_len_reg) begin
+        // Final beat accepted
+        intf.r_valid <= 0;
+        intf.r.last  <= 0;
+
+        r_active  <= 0;
+        r_waiting <= 0;
+      end
+      else begin
+        // Current beat accepted. Prepare delayed next beat.
+        intf.r_valid <= 0;
+        intf.r.last  <= 0;
+
         r_cnt_reg  <= r_cnt_reg + 1;
         r_addr_reg <= r_addr_reg + 4;
 
-        intf.r_valid <= 1;
-        intf.r.data  <= mem[(r_addr_reg + 4) >> 2];
-        intf.r.resp  <= AXI_RESP_OKAY;
-        intf.r.id    <= r_id_reg;
-        intf.r.last  <= ((r_cnt_reg + 1) == r_len_reg);
+        r_delay   <= $urandom_range(0,3);
+        r_waiting <= 1;
       end
 
     end
@@ -332,13 +500,13 @@ always_ff @(posedge clk or negedge rst_n) begin
   else begin
 
     // Capture start address of read burst
-    if (intf.ar_valid && intf.ar_ready) begin
+    if (ar_accept) begin
       sb_rd_addr <= intf.ar.addr;
       sb_rd_cnt  <= 0;
     end
 
     // Check every accepted R beat
-    if (intf.r_valid && intf.r_ready) begin
+    if (r_accept) begin
 
       if ((sb_rd_addr >> 2) > 255) begin
         $error("SCOREBOARD READ ADDRESS OUT OF RANGE: addr=%h index=%0d",
@@ -444,34 +612,47 @@ endtask
 
     wait(rst_n);
 
-    // axi_write_read_check(32'h0000_0010, 32'hAAAA_AAAA);
-    // axi_write_read_check(32'h0000_0040, 32'hBBBB_BBBB);
-    // axi_write_read_check(32'h0000_0080, 32'hCCCC_CCCC);
-    // axi_write_read_check(32'h0000_00C0, 32'hDDDD_DDDD);
+    axi_write_read_check(32'h0000_0010, 32'hAAAA_AAAA, 8'd0);
+axi_write_read_check(32'h0000_0040, 32'hBBBB_BBBB, 8'd1);
+axi_write_read_check(32'h0000_0080, 32'hCCCC_CCCC, 8'd3);
+axi_write_read_check(32'h0000_00C0, 32'hDDDD_DDDD, 8'd7);
 
-    axi_write_read_check(32'h0000_0010, 32'hAAAA_AAAA, 8'd0); // 1 beat
-    axi_write_read_check(32'h0000_0040, 32'hBBBB_BBBB, 8'd1); // 2 beats
-    axi_write_read_check(32'h0000_0080, 32'hCCCC_CCCC, 8'd3); // 4 beats
-    axi_write_read_check(32'h0000_00C0, 32'hDDDD_DDDD, 8'd7); // 8 beats
+// Edge cases
+axi_write_read_check(32'h0000_0000, 32'h1111_1111, 8'd0);
+axi_write_read_check(32'h0000_0020, 32'h2222_2222, 8'd1);
+axi_write_read_check(32'h0000_0060, 32'h3333_3333, 8'd3);
+axi_write_read_check(32'h0000_00A0, 32'h4444_4444, 8'd7);
+axi_write_read_check(32'h0000_0100, 32'h5555_5555, 8'd15);
 
-    #20;
+#20;
 
-    #20;
+for (int t = 0; t < 20; t++) begin
+  logic [ADDR_W-1:0] rand_addr;
+  logic [DATA_W-1:0] rand_data;
+  logic [7:0]        rand_len;
+  int unsigned       max_start_index;
+
+  rand_len = $urandom_range(0, 15);
+
+  // Keep burst inside mem[0:255]
+  max_start_index = 255 - rand_len;
+
+  rand_addr = ($urandom_range(0, max_start_index) << 2);
+  rand_data = $urandom();
+
+  axi_write_read_check(rand_addr, rand_data, rand_len);
+end
 
 if (error_count == 0) begin
   $display("========================================");
-  $display("PHASE 1 PASS");
-  $display("AXI4 burst write/read test completed");
-  $display("Variable burst lengths passed");
-  $display("Backpressure handling passed");
-  $display("Scoreboard matched all read data");
+  $display("PHASE 2 STEP 7 PASS: Randomized burst regression completed");
   $display("========================================");
 end
 else begin
-  $error("PHASE 1 FAILED: error_count=%0d", error_count);
+  $error("PHASE 2 STEP 7 FAILED: error_count=%0d", error_count);
 end
 
 #50;
 $finish;
-end
-endmodule
+  end 
+  endmodule
