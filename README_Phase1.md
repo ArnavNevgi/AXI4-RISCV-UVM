@@ -577,3 +577,146 @@ CPU and DMA sharing one AXI memory
 overlapping CPU/DMA traffic
 fixed-priority arbitration under active traffic
 DMA completion while CPU is also accessing memory
+
+---
+
+# Phase 6: AXI Slaves — Complete
+
+## Goal
+
+Build reusable AXI-accessible slave blocks and replace testbench-only memory models with RTL-style slave modules.
+
+Phase 6 adds reusable memory, register, and FIFO/peripheral slaves for future SoC integration.
+
+---
+
+## Implemented Files
+
+### `axi_sram_slave.sv`
+
+Reusable AXI SRAM slave.
+
+Features:
+
+- AXI write address/data/response support
+- AXI read address/data support
+- INCR burst support
+- single-beat read/write support
+- burst read/write support
+- `WLAST` checking
+- `RLAST` generation
+- OKAY responses
+- parameterized memory depth
+
+Verified with:
+
+- `axi_sram_slave_tb.sv`
+
+Test coverage:
+
+- single-beat write/read
+- 4-beat burst write/read
+- 8-beat burst write/read
+- 16-beat burst write/read
+- randomized burst access regression
+
+Passing output:
+
+```text
+PHASE 6 STEP 2 PASS: AXI SRAM slave verified
+single-beat, burst, and randomized SRAM accesses passed
+
+cpu_dma_sram_tb.sv
+
+Integration test using the reusable AXI SRAM slave.
+
+Integration path:
+
+RISC-V core
+  -> cpu_axi_adapter
+  -> M0 of axi_interconnect_2m1s
+
+dma_controller_burst
+  -> M1 of axi_interconnect_2m1s
+
+axi_interconnect_2m1s
+  -> axi_sram_slave
+
+Verified:
+
+CPU data accesses through interconnect and SRAM
+DMA accesses through interconnect and SRAM
+CPU-generated data copied by DMA
+overlapping CPU/DMA traffic using reusable SRAM slave
+replacement of previous testbench memory model
+
+axi_lite_reg_slave.sv
+
+AXI-Lite-style register slave.
+
+Register map:
+
+Address	Register
+0x00	CONTROL
+0x04	STATUS
+0x08	SRC_ADDR
+0x0C	DST_ADDR
+0x10	LENGTH
+
+Features:
+
+single-beat AXI-style writes
+single-beat AXI-style reads
+OKAY responses
+invalid writes ignored
+invalid reads return zero
+
+Verified with:
+
+axi_lite_reg_slave_tb.sv
+
+Test coverage:
+
+reset values
+register write/read
+overwrite behavior
+invalid address behavior
+randomized register access regression
+
+imple_fifo_slave.sv
+
+Simple memory-mapped FIFO peripheral.
+
+Register map:
+
+Address	Register	Behavior
+0x00	CONTROL	bit 0 clears FIFO
+0x04	STATUS	empty/full/overflow/underflow/count
+0x08	TX_DATA	write pushes data into FIFO
+0x0C	RX_DATA	read pops data from FIFO
+0x10	DEPTH	returns FIFO depth
+
+STATUS bits:
+
+Bit	Meaning
+0	empty
+1	full
+2	overflow
+3	underflow
+15:8	FIFO count
+
+Verified with:
+
+simple_fifo_slave_tb.sv
+
+Test coverage:
+
+reset status
+push/pop ordering
+FIFO full behavior
+overflow flag
+FIFO drain behavior
+underflow flag
+clear behavior
+invalid address behavior
+randomized push/pop test
