@@ -530,3 +530,50 @@ Passing output:
 ```text
 PHASE 5 STEP 5 PASS: burst routing through interconnect verified
 M0/M1 single-beat, arbitration, backpressure, and burst routing passed
+
+dma_interconnect_tb.sv
+
+DMA-through-interconnect testbench.
+
+Integration path:
+
+dma_controller_burst
+  -> axi_interconnect_2m1s
+  -> shared AXI memory
+
+Verified:
+
+real DMA burst master connected as M1
+DMA transfers through interconnect
+4-word transfer
+16-word transfer
+20-word multi-burst transfer
+40-word multi-burst transfer
+randomized DMA/interconnect regression
+multi-burst DMA splitting through interconnect
+
+cpu_dma_interconnect_tb.sv
+
+CPU + DMA shared-interconnect integration testbench.
+
+Integration path:
+
+RISC-V core
+  -> cpu_axi_adapter
+  -> M0 of axi_interconnect_2m1s
+
+dma_controller_burst
+  -> M1 of axi_interconnect_2m1s
+
+axi_interconnect_2m1s
+  -> shared AXI memory
+
+Verified:
+
+CPU data accesses through interconnect
+DMA accesses through interconnect
+CPU-generated data copied by DMA
+CPU and DMA sharing one AXI memory
+overlapping CPU/DMA traffic
+fixed-priority arbitration under active traffic
+DMA completion while CPU is also accessing memory
