@@ -870,3 +870,105 @@ CPU configures DMA through memory-mapped registers
 DMA copies SRAM data
 DMA done status is set
 reusable soc_top.sv works end-to-end
+
+---
+
+# Phase 8: UVM Verification — Complete
+
+## Goal
+
+Build a UVM-based verification environment around the integrated SoC top.
+
+The UVM environment verifies CPU-controlled DMA behavior, AXI monitor traffic, scoreboard data correctness, functional coverage, and regression execution.
+
+---
+
+## Implemented Files
+
+### `uvm/axi_uvm_pkg.sv`
+
+UVM package containing:
+
+- AXI transaction item
+- AXI passive monitor
+- SoC scoreboard
+- SoC environment
+- base UVM test
+
+---
+
+### `uvm/axi_transaction.sv`
+
+UVM sequence item used by passive monitors.
+
+Captured fields:
+
+- transaction kind: read/write
+- AXI ID
+- address
+- data
+- burst length
+- last beat
+- response
+
+---
+
+### `uvm/axi_monitor.sv`
+
+Passive AXI monitor.
+
+Features:
+
+- monitors AW/W/B write traffic
+- monitors AR/R read traffic
+- publishes transactions through analysis ports
+- checks W beat before AW
+- checks R beat before AR
+- checks early/missing `WLAST`
+- checks early/missing `RLAST`
+- checks non-OKAY B/R responses
+- supports CPU AXI and DMA AXI monitoring
+
+---
+
+### `uvm/soc_scoreboard.sv`
+
+SoC scoreboard.
+
+Checks:
+
+- CPU writes DMA `SRC_ADDR`
+- CPU writes DMA `DST_ADDR`
+- CPU writes DMA `LENGTH`
+- CPU writes DMA `CONTROL.START`
+- DMA performs expected number of reads
+- DMA performs expected number of writes
+- DMA write data matches previously observed DMA read data
+- DMA read queue is empty at end of test
+
+Also includes functional coverage for:
+
+- CPU vs DMA agent
+- read vs write transaction
+- CPU register write addresses
+- DMA source address ranges
+- DMA destination address ranges
+- burst length
+- last beat behavior
+- agent/kind cross coverage
+
+---
+
+### `uvm/soc_env.sv`
+
+UVM environment containing:
+
+- CPU AXI monitor
+- DMA AXI monitor
+- SoC scoreboard
+
+Connections:
+
+```text
+cpu_mon.analysis_port -> scoreboard.cpu_imp
+dma_mon.analysis_port -> scoreboard.dma_imp
