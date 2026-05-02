@@ -35,6 +35,7 @@ module riscv_core (
   logic        mem_read_ctrl;
   logic        mem_write_ctrl;
   logic        mem_to_reg_ctrl;
+  logic        imm_to_reg_ctrl;
   logic        alu_src_ctrl;
   logic [2:0]  alu_op_ctrl;
 
@@ -67,6 +68,7 @@ module riscv_core (
     .mem_read(mem_read_ctrl),
     .mem_write(mem_write_ctrl),
     .mem_to_reg(mem_to_reg_ctrl),
+    .imm_to_reg(imm_to_reg_ctrl),
     .alu_src(alu_src_ctrl),
 
     .alu_op(alu_op_ctrl),
@@ -110,10 +112,12 @@ module riscv_core (
 
       if (mem_to_reg_ctrl)
         rf_wdata = load_data_reg;
+      else if (imm_to_reg_ctrl)
+        rf_wdata = imm;
       else
         rf_wdata = alu_result_reg;
-    end
-  end
+          end
+        end
 
   always_ff @(posedge clk or negedge rst_n) begin
     if (!rst_n) begin

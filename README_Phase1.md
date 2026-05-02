@@ -720,3 +720,153 @@ underflow flag
 clear behavior
 invalid address behavior
 randomized push/pop test
+
+---
+
+# Phase 7: Top Integration — Complete
+
+## Goal
+
+Build a reusable SoC-level top that integrates:
+
+- RISC-V CPU
+- CPU-to-AXI adapter
+- burst DMA controller
+- 2-master / 2-slave AXI interconnect
+- AXI SRAM slave
+- DMA control/status register slave
+
+The main Phase 7 goal was to allow the CPU to configure and start DMA through memory-mapped registers.
+
+---
+
+## Implemented Files
+
+### `axi_interconnect_2m2s.sv`
+
+2-master / 2-slave AXI interconnect.
+
+Masters:
+
+- `M0`: CPU AXI adapter
+- `M1`: DMA burst controller
+
+Slaves:
+
+- `S0`: AXI SRAM slave
+- `S1`: DMA/register slave
+
+Address map:
+
+| Address Range | Slave |
+|---:|---|
+| `0x0000_xxxx` | AXI SRAM |
+| `0x0001_xxxx` | DMA/register space |
+
+Features:
+
+- fixed-priority arbitration: `M0 > M1`
+- SRAM/register address decoding
+- read ownership tracking
+- write ownership tracking
+- read response routing
+- write response routing
+- burst routing to SRAM
+- single-beat register access routing
+
+Verified with:
+
+- `axi_interconnect_2m2s_tb.sv`
+
+Passing output:
+
+```text
+PHASE 7 STEP 2 PASS: 2M2S AXI interconnect verified
+SRAM/register address decode and response routing passed
+dma_reg_slave.sv
+
+DMA control/status register slave.
+
+Register map:
+
+Address	Register	Description
+0x00	CONTROL	bit 0 = write 1 to start DMA
+0x04	STATUS	bit 0 = done, bit 1 = busy, bit 2 = error
+0x08	SRC_ADDR	DMA source address
+0x0C	DST_ADDR	DMA destination address
+0x10	LENGTH	DMA transfer length in 32-bit words
+
+Features:
+
+CPU-writable DMA configuration registers
+one-cycle dma_start_pulse
+DMA busy/done/error status reflection
+sticky done/error bits
+status clear behavior
+invalid reads return zero
+invalid writes ignored
+
+CPU ISA Extension
+
+The CPU was extended to support:
+
+ADDI
+LUI
+
+Reason:
+
+The previous CPU supported only ADD, SUB, LW, and SW. To access DMA registers at 0x0001_0000, the CPU needed to generate high immediate addresses.
+
+Verified with:
+
+riscv_core_addi_lui_tb.sv
+
+soc_2m2s_integration_tb.sv
+
+Integration shell testbench.
+
+Verified:
+
+CPU accesses SRAM through the 2M2S interconnect
+DMA register slave is integrated on the register slave port
+DMA register outputs are correctly wired
+SoC integration shell is structurally correct
+
+soc_cpu_controlled_dma_tb.sv
+
+End-to-end CPU-controlled DMA testbench.
+
+Verified:
+
+CPU executes LUI, ADDI, and SW instructions
+CPU writes SRC_ADDR
+CPU writes DST_ADDR
+CPU writes LENGTH
+CPU writes CONTROL.START
+DMA register slave generates dma_start_pulse
+DMA copies SRAM data
+DMA completion is observed
+DMA status done bit becomes sticky
+
+soc_top.sv
+
+Current external interface:
+
+clock/reset
+instruction memory interface
+debug PC
+DMA busy/done/error status
+
+Instruction memory is still external. Data memory and DMA registers are integrated inside the SoC through AXI.
+
+soc_top_tb.sv
+
+Reusable SoC top-level testbench.
+
+Verified:
+
+CPU runs a program from external instruction memory
+CPU configures DMA through memory-mapped registers
+DMA copies SRAM data
+DMA done status is set
+reusable soc_top.sv works end-to-end

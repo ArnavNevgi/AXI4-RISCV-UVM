@@ -5,6 +5,7 @@ module control_unit (
   output logic        mem_read,
   output logic        mem_write,
   output logic        mem_to_reg,
+  output logic        imm_to_reg,
   output logic        alu_src,
 
   output logic [2:0]  alu_op,
@@ -18,8 +19,10 @@ module control_unit (
 
   // Opcodes
   localparam OPCODE_RTYPE = 7'b0110011;
+  localparam OPCODE_ITYPE = 7'b0010011; // ADDI
   localparam OPCODE_LW    = 7'b0000011;
   localparam OPCODE_SW    = 7'b0100011;
+  localparam OPCODE_LUI   = 7'b0110111;
 
   // ALU ops
   localparam ALU_ADD = 3'b000;
@@ -37,11 +40,12 @@ module control_unit (
     rs2    = instr[24:20];
     funct7 = instr[31:25];
 
-    // Defaults
+    // Defaults = NOP behavior
     reg_write = 1'b0;
     mem_read  = 1'b0;
     mem_write = 1'b0;
     mem_to_reg = 1'b0;
+    imm_to_reg = 1'b0;
     alu_src   = 1'b0;
     alu_op    = ALU_ADD;
     imm       = 32'h0000_0000;
@@ -50,9 +54,10 @@ module control_unit (
 
       // ADD/SUB
       OPCODE_RTYPE: begin
-        reg_write = 1'b1;
-        alu_src   = 1'b0;
+        reg_write  = 1'b1;
+        alu_src    = 1'b0;
         mem_to_reg = 1'b0;
+        imm_to_reg = 1'b0;
 
         if (funct3 == 3'b000 && funct7 == 7'b0000000) begin
           alu_op = ALU_ADD; // ADD
@@ -65,17 +70,48 @@ module control_unit (
         end
       end
 
+      // ADDI
+      OPCODE_ITYPE: begin
+        if (funct3 == 3'b000) begin
+          reg_write  = 1'b1;
+          mem_read   = 1'b0;
+          mem_write  = 1'b0;
+          mem_to_reg = 1'b0;
+          imm_to_reg = 1'b0;
+          alu_src    = 1'b1;
+          alu_op     = ALU_ADD;
+
+          // I-type immediate
+          imm = {{20{instr[31]}}, instr[31:20]};
+        end
+      end
+
+      // LUI
+      OPCODE_LUI: begin
+        reg_write  = 1'b1;
+        mem_read   = 1'b0;
+        mem_write  = 1'b0;
+        mem_to_reg = 1'b0;
+        imm_to_reg = 1'b1;
+        alu_src    = 1'b0;
+        alu_op     = ALU_ADD;
+
+        // U-type immediate
+        imm = {instr[31:12], 12'h000};
+      end
+
       // LW
       OPCODE_LW: begin
         if (funct3 == 3'b010) begin
-          reg_write = 1'b1;
-          mem_read  = 1'b1;
-          mem_write = 1'b0;
+          reg_write  = 1'b1;
+          mem_read   = 1'b1;
+          mem_write  = 1'b0;
           mem_to_reg = 1'b1;
-          alu_src   = 1'b1;
-          alu_op    = ALU_ADD;
+          imm_to_reg = 1'b0;
+          alu_src    = 1'b1;
+          alu_op     = ALU_ADD;
 
-          // I-type immediate: instr[31:20]
+          // I-type immediate
           imm = {{20{instr[31]}}, instr[31:20]};
         end
       end
@@ -83,23 +119,28 @@ module control_unit (
       // SW
       OPCODE_SW: begin
         if (funct3 == 3'b010) begin
-          reg_write = 1'b0;
-          mem_read  = 1'b0;
-          mem_write = 1'b1;
+          reg_write  = 1'b0;
+          mem_read   = 1'b0;
+          mem_write  = 1'b1;
           mem_to_reg = 1'b0;
-          alu_src   = 1'b1;
-          alu_op    = ALU_ADD;
+          imm_to_reg = 1'b0;
+          alu_src    = 1'b1;
+          alu_op     = ALU_ADD;
 
-          // S-type immediate: instr[31:25], instr[11:7]
+          // S-type immediate
           imm = {{20{instr[31]}}, instr[31:25], instr[11:7]};
         end
       end
 
       default: begin
-        // Unsupported instruction = NOP behavior
-        reg_write = 1'b0;
-        mem_read  = 1'b0;
-        mem_write = 1'b0;
+        reg_write  = 1'b0;
+        mem_read   = 1'b0;
+        mem_write  = 1'b0;
+        mem_to_reg = 1'b0;
+        imm_to_reg = 1'b0;
+        alu_src    = 1'b0;
+        alu_op     = ALU_ADD;
+        imm        = 32'h0000_0000;
       end
 
     endcase
