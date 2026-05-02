@@ -1,0 +1,210 @@
+COVERGROUP COVERAGE:
+-----------------------------------------------------------------------------------------------
+Covergroup                                             Metric       Goal    Status               
+                                                                                              
+-----------------------------------------------------------------------------------------------
+ TYPE /axi_uvm_pkg/soc_scoreboard/soc_axi_cg           75.78%        100    Uncovered            
+    covered/total bins:                                    20         34                      
+    missing/total bins:                                    14         34                      
+    % Hit:                                             58.82%        100                      
+    Coverpoint soc_axi_cg::cp_agent                   100.00%        100    Covered              
+        covered/total bins:                                 2          2                      
+        missing/total bins:                                 0          2                      
+        % Hit:                                        100.00%        100                      
+        bin cpu                                            16          1    Covered              
+        bin dma                                            80          1    Covered              
+    Coverpoint soc_axi_cg::cp_kind                    100.00%        100    Covered              
+        covered/total bins:                                 2          2                      
+        missing/total bins:                                 0          2                      
+        % Hit:                                        100.00%        100                      
+        bin read                                           40          1    Covered              
+        bin write                                          56          1    Covered              
+    Coverpoint soc_axi_cg::cp_cpu_reg_addr            100.00%        100    Covered              
+        covered/total bins:                                 4          4                      
+        missing/total bins:                                 0          4                      
+        % Hit:                                        100.00%        100                      
+        bin control                                         4          1    Covered              
+        bin src_addr                                        4          1    Covered              
+        bin dst_addr                                        4          1    Covered              
+        bin length                                          4          1    Covered              
+    Coverpoint soc_axi_cg::cp_dma_src_addr             50.00%        100    Uncovered            
+        covered/total bins:                                 1          2                      
+        missing/total bins:                                 1          2                      
+        % Hit:                                         50.00%        100                      
+        bin low_sram                                       40          1    Covered              
+        bin high_sram                                       0          1    ZERO                 
+    Coverpoint soc_axi_cg::cp_dma_dst_addr             50.00%        100    Uncovered            
+        covered/total bins:                                 1          2                      
+        missing/total bins:                                 1          2                      
+        % Hit:                                         50.00%        100                      
+        bin low_sram                                        0          1    ZERO                 
+        bin high_sram                                      40          1    Covered              
+    Coverpoint soc_axi_cg::cp_len                      31.25%        100    Uncovered            
+        covered/total bins:                                 5         16                      
+        missing/total bins:                                11         16                      
+        % Hit:                                         31.25%        100                      
+        bin single                                         16          1    Covered              
+        bin burst_8                                        16          1    Covered              
+        bin burst_16                                       32          1    Covered              
+        bin other[1]                                        0          1    ZERO                 
+        bin other[2]                                        0          1    ZERO                 
+        bin other[3]                                        8          1    Covered              
+        bin other[4]                                        0          1    ZERO                 
+        bin other[5]                                        0          1    ZERO                 
+        bin other[6]                                        0          1    ZERO                 
+        bin other[8]                                        0          1    ZERO                 
+        bin other[9]                                        0          1    ZERO                 
+        bin other[10]                                       0          1    ZERO                 
+        bin other[11]                                      24          1    Covered              
+        bin other[12]                                       0          1    ZERO                 
+        bin other[13]                                       0          1    ZERO                 
+        bin other[14]                                       0          1    ZERO                 
+    Coverpoint soc_axi_cg::cp_last                    100.00%        100    Covered              
+        covered/total bins:                                 2          2                      
+        missing/total bins:                                 0          2                      
+        % Hit:                                        100.00%        100                      
+        bin not_last                                       72          1    Covered              
+        bin last                                           24          1    Covered              
+    Cross soc_axi_cg::cross_agent_kind                 75.00%        100    Uncovered            
+        covered/total bins:                                 3          4                      
+        missing/total bins:                                 1          4                      
+        % Hit:                                         75.00%        100                      
+        bin <dma,read>                                     40          1    Covered              
+        bin <cpu,write>                                    16          1    Covered              
+        bin <dma,write>                                    40          1    Covered              
+        bin <cpu,read>                                      0          1    ZERO                 
+ Covergroup instance \/axi_uvm_pkg::soc_scoreboard::soc_axi_cg  
+                                                       75.78%        100    Uncovered            
+    covered/total bins:                                    20         34                      
+    missing/total bins:                                    14         34                      
+    % Hit:                                             58.82%        100                      
+    Coverpoint cp_agent                               100.00%        100    Covered              
+        covered/total bins:                                 2          2                      
+        missing/total bins:                                 0          2                      
+        % Hit:                                        100.00%        100                      
+        bin cpu                                            16          1    Covered              
+        bin dma                                            80          1    Covered              
+    Coverpoint cp_kind                                100.00%        100    Covered              
+        covered/total bins:                                 2          2                      
+        missing/total bins:                                 0          2                      
+        % Hit:                                        100.00%        100                      
+        bin read                                           40          1    Covered              
+        bin write                                          56          1    Covered              
+    Coverpoint cp_cpu_reg_addr                        100.00%        100    Covered              
+        covered/total bins:                                 4          4                      
+        missing/total bins:                                 0          4                      
+        % Hit:                                        100.00%        100                      
+        bin control                                         4          1    Covered              
+        bin src_addr                                        4          1    Covered              
+        bin dst_addr                                        4          1    Covered              
+        bin length                                          4          1    Covered              
+    Coverpoint cp_dma_src_addr                         50.00%        100    Uncovered            
+        covered/total bins:                                 1          2                      
+        missing/total bins:                                 1          2                      
+        % Hit:                                         50.00%        100                      
+        bin low_sram                                       40          1    Covered              
+        bin high_sram                                       0          1    ZERO                 
+    Coverpoint cp_dma_dst_addr                         50.00%        100    Uncovered            
+        covered/total bins:                                 1          2                      
+        missing/total bins:                                 1          2                      
+        % Hit:                                         50.00%        100                      
+        bin low_sram                                        0          1    ZERO                 
+        bin high_sram                                      40          1    Covered              
+    Coverpoint cp_len                                  31.25%        100    Uncovered            
+        covered/total bins:                                 5         16                      
+        missing/total bins:                                11         16                      
+        % Hit:                                         31.25%        100                      
+        bin single                                         16          1    Covered              
+        bin burst_8                                        16          1    Covered              
+        bin burst_16                                       32          1    Covered              
+        bin other[1]                                        0          1    ZERO                 
+        bin other[2]                                        0          1    ZERO                 
+        bin other[3]                                        8          1    Covered              
+        bin other[4]                                        0          1    ZERO                 
+        bin other[5]                                        0          1    ZERO                 
+        bin other[6]                                        0          1    ZERO                 
+        bin other[8]                                        0          1    ZERO                 
+        bin other[9]                                        0          1    ZERO                 
+        bin other[10]                                       0          1    ZERO                 
+        bin other[11]                                      24          1    Covered              
+        bin other[12]                                       0          1    ZERO                 
+        bin other[13]                                       0          1    ZERO                 
+        bin other[14]                                       0          1    ZERO                 
+    Coverpoint cp_last                                100.00%        100    Covered              
+        covered/total bins:                                 2          2                      
+        missing/total bins:                                 0          2                      
+        % Hit:                                        100.00%        100                      
+        bin not_last                                       72          1    Covered              
+        bin last                                           24          1    Covered              
+    Cross cross_agent_kind                             75.00%        100    Uncovered            
+        covered/total bins:                                 3          4                      
+        missing/total bins:                                 1          4                      
+        % Hit:                                         75.00%        100                      
+        bin <dma,read>                                     40          1    Covered              
+        bin <cpu,write>                                    16          1    Covered              
+        bin <dma,write>                                    40          1    Covered              
+        bin <cpu,read>                                      0          1    ZERO                 
+
+TOTAL COVERGROUP COVERAGE: 75.78%  COVERGROUP TYPES: 1
+
+ASSERTION RESULTS:
+--------------------------------------------------------------------
+Name                 File(Line)                   Failure      Pass 
+                                                  Count        Count
+--------------------------------------------------------------------
+/soc_top_uvm_tb/dut/cpu_axi_if/a_stable_aw
+                     axi_if.sv(69)                      0          0
+/soc_top_uvm_tb/dut/cpu_axi_if/a_stable_w
+                     axi_if.sv(77)                      0          0
+/soc_top_uvm_tb/dut/cpu_axi_if/a_stable_ar
+                     axi_if.sv(85)                      0          0
+/soc_top_uvm_tb/dut/cpu_axi_if/a_stable_b
+                     axi_if.sv(93)                      0          0
+/soc_top_uvm_tb/dut/cpu_axi_if/a_stable_r
+                     axi_if.sv(101)                     0          0
+/soc_top_uvm_tb/dut/cpu_axi_if/a_wlast_only_when_wvalid
+                     axi_if.sv(109)                     0          4
+/soc_top_uvm_tb/dut/cpu_axi_if/a_rlast_only_when_rvalid
+                     axi_if.sv(117)                     0          0
+/soc_top_uvm_tb/dut/dma_axi_if/a_stable_aw
+                     axi_if.sv(69)                      0          0
+/soc_top_uvm_tb/dut/dma_axi_if/a_stable_w
+                     axi_if.sv(77)                      0          0
+/soc_top_uvm_tb/dut/dma_axi_if/a_stable_ar
+                     axi_if.sv(85)                      0          0
+/soc_top_uvm_tb/dut/dma_axi_if/a_stable_b
+                     axi_if.sv(93)                      0          0
+/soc_top_uvm_tb/dut/dma_axi_if/a_stable_r
+                     axi_if.sv(101)                     0          0
+/soc_top_uvm_tb/dut/dma_axi_if/a_wlast_only_when_wvalid
+                     axi_if.sv(109)                     0          4
+/soc_top_uvm_tb/dut/dma_axi_if/a_rlast_only_when_rvalid
+                     axi_if.sv(117)                     0          4
+/soc_top_uvm_tb/dut/sram_if/a_stable_aw
+                     axi_if.sv(69)                      0          0
+/soc_top_uvm_tb/dut/sram_if/a_stable_w
+                     axi_if.sv(77)                      0          0
+/soc_top_uvm_tb/dut/sram_if/a_stable_ar
+                     axi_if.sv(85)                      0          0
+/soc_top_uvm_tb/dut/sram_if/a_stable_b
+                     axi_if.sv(93)                      0          0
+/soc_top_uvm_tb/dut/sram_if/a_stable_r
+                     axi_if.sv(101)                     0          0
+/soc_top_uvm_tb/dut/sram_if/a_wlast_only_when_wvalid
+                     axi_if.sv(109)                     0          4
+/soc_top_uvm_tb/dut/sram_if/a_rlast_only_when_rvalid
+                     axi_if.sv(117)                     0          4
+/soc_top_uvm_tb/dut/dma_regs_if/a_stable_aw
+                     axi_if.sv(69)                      0          0
+/soc_top_uvm_tb/dut/dma_regs_if/a_stable_w
+                     axi_if.sv(77)                      0          0
+/soc_top_uvm_tb/dut/dma_regs_if/a_stable_ar
+                     axi_if.sv(85)                      0          0
+/soc_top_uvm_tb/dut/dma_regs_if/a_stable_b
+                     axi_if.sv(93)                      0          0
+/soc_top_uvm_tb/dut/dma_regs_if/a_stable_r
+                     axi_if.sv(101)                     0          0
+/soc_top_uvm_tb/dut/dma_regs_if/a_wlast_only_when_wvalid
+                     axi_if.sv(109)                     0          4
+/soc_top_uvm_tb/dut/dma_regs_if/a_rlast_only_when_rvalid
+                     axi_if.sv(117)                     0          0
