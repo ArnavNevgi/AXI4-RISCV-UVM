@@ -462,3 +462,71 @@ backpressure on AXI address/data channels
 delayed AXI responses
 status/control behavior
 destination memory checked against source memory
+
+---
+
+# Phase 5: AXI Interconnect — Complete
+
+## Goal
+
+Build a 2-master / 1-slave AXI interconnect and use it to connect the CPU and DMA to shared AXI memory.
+
+The interconnect allows multiple AXI masters to access one shared slave while preserving response routing and transaction ownership.
+
+---
+
+## Implemented Files
+
+### `axi_interconnect_2m1s.sv`
+
+2-master / 1-slave AXI interconnect.
+
+Masters:
+
+- `M0`: CPU AXI adapter
+- `M1`: DMA burst controller
+
+Slave:
+
+- `S0`: shared AXI memory / slave port
+
+Features:
+
+- fixed-priority arbitration
+  - `M0 > M1`
+- independent read and write ownership tracking
+- read response routing to correct master
+- write response routing to correct master
+- single-beat transaction support
+- burst transaction support
+- one active read transaction at a time
+- one active write transaction at a time
+
+---
+
+## Verification Files
+
+### `axi_interconnect_2m1s_tb.sv`
+
+Standalone interconnect testbench.
+
+Verified:
+
+- `M0` write routing
+- `M1` write routing
+- `M0` read routing
+- `M1` read routing
+- cross-master reads
+- fixed-priority AW arbitration
+- fixed-priority AR arbitration
+- `RREADY` backpressure routing
+- `BREADY` backpressure routing
+- burst write routing
+- burst read routing
+- `WLAST`/`RLAST` handling through interconnect
+
+Passing output:
+
+```text
+PHASE 5 STEP 5 PASS: burst routing through interconnect verified
+M0/M1 single-beat, arbitration, backpressure, and burst routing passed
